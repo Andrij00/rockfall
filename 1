@@ -1,0 +1,200 @@
+from pygame import *
+from random import randint
+img_back="Fon.jpg"
+img_rocket="ver.png"
+
+font.init()
+font1 = font.SysFont("Arial",80)
+win = font1.render("You win",True,(0,255,0))
+lose = font1.render("You lose",True,(255,255,255))
+font2 = font.SysFont("ARIAL",40)
+font3 = font.SysFont("ARIAL",80)
+font4 = font.SysFont("ARIAL",30)
+score = 0 #скільки збито нло
+goal = 10 #ціль гри - знищити 10 нло
+lost = 0 #скільки пропустили нло
+max_lost = 25
+life=2
+m=0
+max_m=3
+class GameSprite(sprite.Sprite) :
+    def __init__(self, player_image, player_x, player_y, size_x, size_y, player_speed) :
+        sprite.Sprite.__init__(self) #super() . _init_()
+        self.image = transform.scale(image.load(player_image), (size_x, size_y))
+        self.speed = player_speed
+        self.rect = self.image.get_rect()
+        self.rect.x = player_x
+        self.rect.y = player_y
+    def reset (self) :
+        window.blit(self.image,(self.rect.x,self.rect.y))
+
+class Player(GameSprite):
+    def update(self):
+        keys = key.get_pressed()
+        if keys[K_LEFT] and self.rect.x > 146:
+            self.rect.x -= self.speed
+           
+        if keys[K_RIGHT] and self.rect.x <570:
+            self.rect.x += self.speed
+        if keys[K_DOWN] and self.rect.y < 500:
+            self.rect.y += self.speed
+        if keys[K_UP] and self.rect.y >5:
+            self.rect.y -= self.speed
+        
+    def fire(self):
+        bullet = Bullet("Cares.png",self.rect.centerx,self.rect.top,15,20,-15)
+        bullets.add(bullet)
+
+class Enemy(GameSprite):
+    def update(self):
+        self.rect.y += self.speed
+        global lost
+        if self.rect.y > win_height:
+            self.rect.x = randint(130, 590)
+            self.rect.y = 0
+            lost = lost+1
+            
+class Enemy1(GameSprite):
+    def update(self):
+        self.rect.y += self.speed
+        global lost
+        if self.rect.y > win_height:
+            self.rect.x = randint(140, 580)
+            self.rect.y = 0
+            lost=lost -1
+class Bullet(GameSprite):
+    def update(self):
+        self.rect.y += self.speed
+        if self.rect.y<0:
+            self.kill()
+        
+bullets=sprite.Group()
+monsters = sprite.Group()
+for i in range(5,6):
+    monster = Enemy("rock.png",randint(140,580),-40,60,90,randint(4,5))
+    monsters.add(monster)
+asteroids = sprite.Group()
+
+cars = sprite.Group()
+
+for i in range(5,6):
+    monster = Enemy("rock.png",randint(140,580),-40,60,90,randint(4,5))
+    monsters.add(monster)
+asteroids = sprite.Group()
+for i in range(7,9):
+    asteroid= Enemy1("mon.png",randint(140,580),-40,90,90,randint(7,9))
+    asteroids.add(asteroid)
+cars = sprite.Group()
+for i in range(4,5):
+    car = Enemy("rock1.png",randint(140,580),-40,100,150,randint(4,5))
+    cars.add(car)    
+win_width = 800
+win_height = 600
+display.set_caption("rockfall")
+window=display.set_mode((win_width,win_height))
+background = transform.scale(image.load(img_back),(win_width,win_height))
+
+
+ship=Player(img_rocket,350,500,75,100,12)
+run=True
+finish = False
+rel_time = False#перезярядка
+num_fire = 0 #кількість пострілів
+
+from time import time as timer
+
+
+while run:
+    for e in event.get() :
+        if e. type == QUIT:
+            run = False
+        elif e.type == KEYDOWN:
+            if e.key == K_SPACE:
+                if num_fire<3 and rel_time == False:
+                    num_fire += 1
+                    #fire_sound.play()    
+                    ship.fire()
+                if num_fire >= 3 and rel_time ==False:
+                    rel_time = True
+                    last_time = timer()                                                                                  
+    if not finish:
+        window.blit(background,(0, 0))
+        ship.update()
+        ship.reset()
+        monsters.update()
+        monsters.draw(window)
+        asteroids.update()
+        asteroids.draw(window)
+        cars.update()
+        bullets.update()
+        cars.draw(window)
+        ship.reset()
+        bullets.draw(window)
+
+        if rel_time==True:
+            now_time =timer()
+            if now_time -last_time<3:
+                reload = font2.render("Wait...reload",1,(150,0,0))
+                window.blit(reload, (260,480))
+            else:
+                num_fire=0
+                rel_time=False
+        collides = sprite.groupcollide(monsters, bullets,False, True)
+        collides = sprite.groupcollide(cars, bullets, False, True)
+        collides = sprite.groupcollide(asteroids, bullets,True,True) 
+        #if sprite.groupcollide(asteroids, bullets,False):
+            #sprite.groupcollide(asteroids, bullets,True)
+            #m=m+1
+        for c in collides:
+            
+            asteroid = Enemy("mon.png",randint(140,580),-40,90,90,5)            
+            asteroids.add(asteroid)
+        
+
+
+        if sprite.spritecollide(ship,monsters,False):
+            sprite.spritecollide(ship,monsters,True)
+            
+            life = life -1
+        if sprite.spritecollide(ship,asteroids,False):
+            sprite.spritecollide(ship,asteroids,True)
+            life = life - 1    
+        if sprite.spritecollide(ship,cars,False):
+            sprite.spritecollide(ship,cars,True)
+            life=life-2
+        if life <= 0 :
+            finish = True
+            window.blit(lose, (200,200),)
+        if lost>= max_lost:
+            finish = True
+            window.blit(win, (200,200)) 
+        #if score>=goal:
+            #finish = True
+            #window.blit(win,(200,200))
+        if m>=max_m:
+            finish = True
+            window.blit(win, (200,200)) 
+        if life == 3:
+            color_life = (255,0, 0)
+        if life == 2:
+            color_life = (255, 0, 0)
+        if life == 1:
+            color_life = (0, 0, 128)
+        #text_score = font2.render("kill "+str(score),1,(255,0,0))
+        #window.blit(text_score, (10, 155))
+        text_lose = font4.render("25|"+str(lost), 1, (0, 255, 0))
+        window.blit (text_lose, (10,200))
+        text_life = font3.render("♥"+str(life), 1, color_life)
+        window.blit(text_life, (685, 8))
+        display.update()
+    else:
+        score = 0
+        lost = 0
+        num_fire=0
+        life = 2
+        for m in monsters:
+            m.kill()
+        for a in asteroids:
+            a.kill()
+        time.delay(300)            
+    time.delay(50) 
